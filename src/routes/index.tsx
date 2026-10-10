@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Camera, Mic, Type, FolderTree, TrendingUp, BellRing, BookOpenCheck } from "lucide-react";
 import hero from "@/assets/hero.png";
 import capture from "@/assets/capture.png";
@@ -52,9 +52,9 @@ function Index() {
         <span className="font-['Fraunces'] text-2xl font-bold text-primary">
           mist<span className="text-amber-brand">book</span>
         </span>
-        <a href="#start" className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90">
+        <Link to="/log" className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90">
           Get started
-        </a>
+        </Link>
       </header>
 
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-6 md:grid-cols-2 md:pt-12">
@@ -68,10 +68,10 @@ function Index() {
           <p className="mt-5 max-w-md text-lg text-muted-foreground">
             Mistbook is your smarter mistake book. Capture the mistake while it's fresh — we organize the lesson for you.
           </p>
-          <div id="start" className="mt-8 flex flex-wrap gap-3">
-            <a href="#how" className="rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground transition hover:opacity-90">
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link to="/log" className="rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground transition hover:opacity-90">
               Log your first mistake
-            </a>
+            </Link>
             <a href="#features" className="rounded-full border border-border bg-card px-6 py-3 font-medium text-foreground transition hover:bg-secondary">
               See how it works
             </a>
@@ -125,9 +125,9 @@ function Index() {
             Your job is simple: <span className="underline-sketch">log the mistake.</span>
           </h2>
           <p className="mt-4 text-muted-foreground">Mistbook helps turn it into a better revision habit.</p>
-          <a href="#start" className="mt-8 inline-block rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground transition hover:opacity-90">
+          <Link to="/log" className="mt-8 inline-block rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground transition hover:opacity-90">
             Start your mistake book
-          </a>
+          </Link>
         </div>
       </section>
 
