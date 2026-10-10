@@ -5,8 +5,8 @@ export type Mistake = {
   topic: string;
   whatWentWrong: string;
   rememberNext: string;
-  photo?: string; // data URL
-  voice?: string; // data URL
+  photo?: string | undefined; // data URL
+  voice?: string | undefined; // data URL
   createdAt: number;
 };
 
