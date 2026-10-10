@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Eye, Check, X } from "lucide-react";
-import { loadMistakes, saveMistakes, type Mistake } from "@/lib/mistakes";
+import { fetchMistakes, upsertMistake, type Mistake } from "@/lib/mistakes";
 import { isDue, nextReview, INTERVALS_DAYS } from "@/lib/review";
 
-export const Route = createFileRoute("/review")({
+export const Route = createFileRoute("/_authenticated/review")({
   head: () => ({
     meta: [
       { title: "Mistbook — Review queue" },
@@ -25,7 +25,7 @@ function Review() {
   const [attempt, setAttempt] = useState("");
   const [done, setDone] = useState(0);
 
-  useEffect(() => { setAll(loadMistakes()); setNow(Date.now()); }, []);
+  useEffect(() => { fetchMistakes().then(setAll).catch(() => {}); setNow(Date.now()); }, []);
 
   const queue = useMemo(() => all.filter((m) => isDue(m.review, m.createdAt, now)), [all, now]);
   const current = queue[0];
@@ -37,7 +37,9 @@ function Review() {
   const grade = (remembered: boolean) => {
     if (!current) return;
     const list = all.map((m) => (m.id === current.id ? { ...m, review: nextReview(m.review, remembered, Date.now()) } : m));
-    setAll(list); saveMistakes(list);
+    setAll(list);
+    const saved = list.find((m) => m.id === current.id);
+    if (saved) void upsertMistake(saved);
     setRevealed(false); setAttempt(""); setDone((d) => d + 1);
   };
 
