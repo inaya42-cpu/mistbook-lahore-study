@@ -8,7 +8,10 @@ export type Mistake = {
   photo?: string | undefined; // data URL
   voice?: string | undefined; // data URL
   createdAt: number;
+  analysis?: { misconception: string; correctedReasoning: string; takeaway: string } | undefined;
+  review?: { box: number; dueAt: number } | undefined;
 };
+
 
 const KEY = "mistbook.mistakes.v1";
 

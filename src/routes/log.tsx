@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, Mic, Square, Trash2, ArrowLeft, Plus } from "lucide-react";
+import { Camera, Mic, Square, Trash2, ArrowLeft, Plus, Sparkles, Repeat } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { analyzeMistake } from "@/lib/analyze.functions";
+import { initialReview } from "@/lib/review";
 import { loadMistakes, saveMistakes, fileToDataUrl, SUBJECTS, type Mistake } from "@/lib/mistakes";
 
 export const Route = createFileRoute("/log")({
@@ -26,6 +29,21 @@ function MistakeLog() {
   const [recording, setRecording] = useState(false);
   const [filter, setFilter] = useState("All");
   const recRef = useRef<MediaRecorder | null>(null);
+  const analyze = useServerFn(analyzeMistake);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const runAnalysis = async (m: Mistake, list: Mistake[]) => {
+    setBusyId(m.id); setAiError(null);
+    try {
+      const r = await analyze({ data: { subject: m.subject, chapter: m.chapter, topic: m.topic, explanation: m.whatWentWrong, photo: m.photo } });
+      if (r.error || !r.analysis) { setAiError(r.error ?? "Analysis failed."); return; }
+      const updated = list.map((x) => (x.id === m.id ? { ...x, analysis: r.analysis, rememberNext: x.rememberNext || r.analysis!.takeaway } : x));
+      persist(updated);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "Analysis failed.");
+    } finally { setBusyId(null); }
+  };
 
   useEffect(() => setMistakes(loadMistakes()), []);
 
@@ -57,7 +75,7 @@ function MistakeLog() {
     setRecording(false);
   };
 
-  const addMistake = () => {
+  const addMistake = (withAi = false) => {
     if (!wrong.trim()) return;
     const m: Mistake = {
       id: crypto.randomUUID(),
@@ -69,8 +87,11 @@ function MistakeLog() {
       photo,
       voice,
       createdAt: Date.now(),
+      review: initialReview(Date.now()),
     };
-    persist([m, ...mistakes]);
+    const list = [m, ...mistakes];
+    persist(list);
+    if (withAi) void runAnalysis(m, list);
     setChapter(""); setTopic(""); setWrong(""); setRemember(""); setPhoto(undefined); setVoice(undefined);
     setOpen(false);
   };
@@ -89,6 +110,9 @@ function MistakeLog() {
       <div className="mx-auto max-w-3xl px-5 pb-24">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">My mistakes</h1>
+          <Link to="/review" className="flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-sm font-medium">
+            <Repeat className="h-4 w-4" /> Review
+          </Link>
           <button onClick={() => setOpen(!open)} className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
             <Plus className="h-4 w-4" /> Log mistake
           </button>
@@ -139,11 +163,18 @@ function MistakeLog() {
             </div>
             {photo && <img src={photo} alt="Mistake photo" className="max-h-48 rounded-lg border border-border" />}
 
-            <button onClick={addMistake} disabled={!wrong.trim()} className="rounded-full bg-primary px-6 py-2.5 font-medium text-primary-foreground disabled:opacity-40">
-              Save mistake
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button onClick={() => addMistake(true)} disabled={!wrong.trim()} className="flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 font-medium text-primary-foreground disabled:opacity-40">
+                <Sparkles className="h-4 w-4" /> Save & analyze with AI
+              </button>
+              <button onClick={() => addMistake(false)} disabled={!wrong.trim()} className="rounded-full border border-border bg-secondary px-6 py-2.5 font-medium disabled:opacity-40">
+                Save only
+              </button>
+            </div>
           </div>
         )}
+
+        {aiError && <p className="mt-4 rounded-lg border border-destructive/40 px-3 py-2 text-sm text-destructive">{aiError}</p>}
 
         <div className="mt-8 flex flex-wrap gap-2">
           {["All", ...SUBJECTS].map((s) => (
@@ -174,6 +205,18 @@ function MistakeLog() {
                 {m.rememberNext && (
                   <p className="mt-2 rounded-lg bg-amber-soft px-3 py-2 text-sm">💡 {m.rememberNext}</p>
                 )}
+                {m.analysis ? (
+                  <div className="mt-3 space-y-2 rounded-lg border border-border bg-secondary/50 p-3 text-sm">
+                    <p><span className="font-semibold">Misconception:</span> {m.analysis.misconception}</p>
+                    <p className="whitespace-pre-line"><span className="font-semibold">Corrected reasoning:</span> {m.analysis.correctedReasoning}</p>
+                    <p><span className="font-semibold">Takeaway:</span> {m.analysis.takeaway}</p>
+                  </div>
+                ) : (
+                  <button onClick={() => runAnalysis(m, mistakes)} disabled={busyId === m.id} className="mt-3 flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm disabled:opacity-50">
+                    <Sparkles className="h-4 w-4" /> {busyId === m.id ? "Analyzing…" : "Analyze with AI"}
+                  </button>
+                )}
+                {busyId === m.id && m.analysis === undefined && <p className="mt-2 text-xs text-muted-foreground">Finding the misconception…</p>}
                 {m.photo && <img src={m.photo} alt="Mistake" className="mt-3 max-h-56 rounded-lg border border-border" />}
                 {m.voice && <audio controls src={m.voice} className="mt-3 h-9 w-full" />}
                 <p className="mt-3 text-xs text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</p>
