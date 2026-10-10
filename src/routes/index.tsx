@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Camera, Mic, Type, FolderTree, TrendingUp, BellRing, BookOpenCheck } from "lucide-react";
 import hero from "@/assets/hero.png";
 import capture from "@/assets/capture.png";
