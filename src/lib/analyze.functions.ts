@@ -22,7 +22,7 @@ export const analyzeMistake = createServerFn({ method: "POST" })
     return d;
   })
   .handler(async ({ data }): Promise<{ analysis?: Analysis; error?: string }> => {
-    const key = process.env.LOVABLE_API_KEY;
+    const key = process.env['LOVABLE_API_KEY'];
     if (!key) return { error: "AI is not configured." };
 
     const content: unknown[] = [

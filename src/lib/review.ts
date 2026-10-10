@@ -10,7 +10,7 @@ export function initialReview(now: number): ReviewState {
 
 export function nextReview(state: ReviewState | undefined, remembered: boolean, now: number): ReviewState {
   const box = remembered ? Math.min((state?.box ?? -1) + 1, INTERVALS_DAYS.length - 1) : 0;
-  return { box, dueAt: now + INTERVALS_DAYS[box] * DAY };
+  return { box, dueAt: now + (INTERVALS_DAYS[box] ?? 30) * DAY };
 }
 
 export function isDue(state: ReviewState | undefined, createdAt: number, now: number): boolean {
