@@ -113,6 +113,9 @@ function MistakeLog() {
           <Link to="/review" className="flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-sm font-medium">
             <Repeat className="h-4 w-4" /> Review
           </Link>
+          <Link to="/planner" className="rounded-full border border-border bg-secondary px-4 py-2 text-sm font-medium">
+            Plan
+          </Link>
           <button onClick={() => setOpen(!open)} className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
             <Plus className="h-4 w-4" /> Log mistake
           </button>
