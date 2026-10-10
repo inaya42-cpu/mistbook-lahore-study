@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { loadMistakes } from "@/lib/mistakes";
+import { fetchMistakes } from "@/lib/mistakes";
 import { buildPlan, type PlanItem } from "@/lib/planner";
 
-export const Route = createFileRoute("/planner")({
+export const Route = createFileRoute("/_authenticated/planner")({
   head: () => ({
     meta: [
       { title: "Mistbook — Revision planner" },
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/planner")({
 
 function Planner() {
   const [plan, setPlan] = useState<PlanItem[]>([]);
-  useEffect(() => setPlan(buildPlan(loadMistakes(), Date.now())), []);
+  useEffect(() => { fetchMistakes().then((l) => setPlan(buildPlan(l, Date.now()))).catch(() => {}); }, []);
   const max = plan[0]?.score ?? 1;
 
   return (

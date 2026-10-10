@@ -1,12 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { Camera, Mic, Square, Trash2, ArrowLeft, Plus, Sparkles, Repeat } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeMistake } from "@/lib/analyze.functions";
 import { initialReview } from "@/lib/review";
-import { loadMistakes, saveMistakes, fileToDataUrl, SUBJECTS, type Mistake } from "@/lib/mistakes";
+import { fetchMistakes, upsertMistake, deleteMistake, migrateLocalMistakes, fileToDataUrl, SUBJECTS, type Mistake } from "@/lib/mistakes";
 
-export const Route = createFileRoute("/log")({
+export const Route = createFileRoute("/_authenticated/log")({
   head: () => ({
     meta: [
       { title: "Mistbook — Your mistake log" },
@@ -40,16 +41,32 @@ function MistakeLog() {
       if (r.error || !r.analysis) { setAiError(r.error ?? "Analysis failed."); return; }
       const updated = list.map((x) => (x.id === m.id ? { ...x, analysis: r.analysis, rememberNext: x.rememberNext || r.analysis!.takeaway } : x));
       persist(updated);
+      const saved = updated.find((x) => x.id === m.id);
+      if (saved) await upsertMistake(saved);
     } catch (e) {
       setAiError(e instanceof Error ? e.message : "Analysis failed.");
     } finally { setBusyId(null); }
   };
 
-  useEffect(() => setMistakes(loadMistakes()), []);
+  const navigate = useNavigate();
+  useEffect(() => {
+    (async () => {
+      try {
+        const moved = await migrateLocalMistakes();
+        if (moved) setAiError(null);
+        setMistakes(await fetchMistakes());
+      } catch (e) {
+        setAiError(e instanceof Error ? e.message : "Couldn't load your mistakes.");
+      }
+    })();
+  }, []);
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  };
 
   const persist = (list: Mistake[]) => {
     setMistakes(list);
-    saveMistakes(list);
   };
 
   const startRecording = async () => {
@@ -91,6 +108,7 @@ function MistakeLog() {
     };
     const list = [m, ...mistakes];
     persist(list);
+    upsertMistake(m).catch((e) => setAiError(e instanceof Error ? e.message : "Couldn't save."));
     if (withAi) void runAnalysis(m, list);
     setChapter(""); setTopic(""); setWrong(""); setRemember(""); setPhoto(undefined); setVoice(undefined);
     setOpen(false);
@@ -101,9 +119,9 @@ function MistakeLog() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5">
-        <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Home
-        </Link>
+        <button onClick={signOut} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Sign out
+        </button>
         <span className="font-['Fraunces'] text-xl font-bold text-primary">mist<span className="text-amber-brand">book</span></span>
       </header>
 
@@ -200,7 +218,7 @@ function MistakeLog() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-amber-brand">{m.subject}</p>
                     <p className="text-sm text-muted-foreground">{[m.chapter, m.topic].filter(Boolean).join(" · ")}</p>
                   </div>
-                  <button onClick={() => persist(mistakes.filter((x) => x.id !== m.id))} aria-label="Delete" className="text-muted-foreground hover:text-destructive">
+                  <button onClick={() => { persist(mistakes.filter((x) => x.id !== m.id)); deleteMistake(m.id).catch(() => setAiError("Couldn't delete.")); }} aria-label="Delete" className="text-muted-foreground hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>

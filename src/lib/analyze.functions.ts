@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type Analysis = { misconception: string; correctedReasoning: string; takeaway: string };
 
@@ -16,6 +17,7 @@ const schema = {
 };
 
 export const analyzeMistake = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: Input) => {
     if (!d || typeof d.explanation !== "string" || !d.explanation.trim()) throw new Error("Please explain your mistake.");
     if (d.photo && (!d.photo.startsWith("data:image/") || d.photo.length > 8_000_000)) throw new Error("Photo is invalid or too large.");
